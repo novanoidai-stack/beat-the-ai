@@ -1,0 +1,24 @@
+# Beat the AI · fase 2: cada 30 min, verifica las partidas pendientes del Hall of Fame (las repite con el simulador.wasm de su
+# build y las marca verificadas o rechazadas). Secrets del repo: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY.
+name: Verificar partidas
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: verificar
+  cancel-in-progress: false
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node verificador/verificar_pendientes.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TIEMPO_MAX_S: "420"
