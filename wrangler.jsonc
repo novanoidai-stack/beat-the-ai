@@ -1,0 +1,10 @@
+// Beat the AI en Cloudflare: la página es un sitio estático (la carpeta web/) servido por un Worker sin código.
+// Subir una versión nueva: npx wrangler deploy (desde la raíz del repo).
+{
+	"name": "beat-the-ai",
+	"compatibility_date": "2026-10-01",
+	"assets": {
+		"directory": "./web",
+		"not_found_handling": "404-page"
+	}
+}

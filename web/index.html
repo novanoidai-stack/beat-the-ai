@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat the AI · VibeFuser</title>
+<meta name="description" content="Drive a Tiger against the same AI that fights in our Minecraft mod. Same AI, same shells, same map. In your browser.">
+<style>
+	@font-face { font-family: "Montserrat"; font-weight: 500; src: url("fuentes/Montserrat-Medium.otf") format("opentype"); font-display: swap; }
+	@font-face { font-family: "Montserrat"; font-weight: 700; src: url("fuentes/Montserrat-Bold.otf") format("opentype"); font-display: swap; }
+	@font-face { font-family: "Montserrat"; font-weight: 900; src: url("fuentes/Montserrat-Black.otf") format("opentype"); font-display: swap; }
+	:root {
+		--negro: #0a0a0a; --blanco: #f4f4f2; --g1: #1a1a1a; --g2: #2a2a2a; --g3: #8c8c8c; --g4: #bdbdba;
+		--rojo: #e5484d; --rojo-suave: rgba(229, 72, 77, .16); --velo: rgba(10, 10, 10, .78);
+	}
+	* { box-sizing: border-box; }
+	html, body { margin: 0; height: 100%; background: var(--negro); color: var(--blanco); overflow: hidden; }
+	body { font: 500 15px/1.45 Montserrat, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+	canvas#lienzo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: none; }
+	.oculto { display: none !important; }
+	button { font: 700 14px Montserrat, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+		background: var(--blanco); color: var(--negro); border: 0; border-radius: 4px; padding: 12px 20px; }
+	button.sec { background: transparent; color: var(--blanco); border: 1.5px solid var(--g2); }
+	button:hover { filter: brightness(1.08); }
+	button.sec:hover { border-color: var(--g3); }
+	button:disabled { opacity: .35; cursor: default; }
+
+	/* Portada */
+	#portada { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px 16px; overflow-y: auto;
+		background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.07), transparent 60%), linear-gradient(135deg, #151515, #050505); }
+	.caja { width: min(880px, 100%); }
+	.marca { display: flex; align-items: center; gap: 14px; }
+	.marca svg { width: 52px; height: auto; }
+	.marca b { font: 900 22px Montserrat; letter-spacing: .1em; }
+	.marca b span { color: transparent; -webkit-text-stroke: 1.2px var(--blanco); }
+	h1 { font: 900 clamp(44px, 9vw, 92px)/.92 Montserrat; letter-spacing: .02em; margin: 34px 0 14px; text-transform: uppercase; }
+	h1 span { color: transparent; -webkit-text-stroke: 2px var(--blanco); }
+	.lema { font: 700 clamp(15px, 2.2vw, 19px) Montserrat; letter-spacing: .12em; text-transform: uppercase; color: var(--g4); margin: 0 0 8px; }
+	.texto { color: var(--g3); max-width: 640px; margin: 0 0 30px; }
+	.modos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 26px; }
+	.modo { text-align: left; background: var(--g1); color: var(--blanco); border: 1.5px solid var(--g2); border-radius: 6px; padding: 18px 18px 16px;
+		text-transform: none; letter-spacing: 0; transition: border-color .15s, transform .15s; }
+	.modo:hover { border-color: var(--blanco); transform: translateY(-2px); filter: none; }
+	.modo .n { font: 900 34px Montserrat; letter-spacing: .02em; display: block; }
+	.modo .d { font: 700 12px Montserrat; letter-spacing: .14em; color: var(--g3); text-transform: uppercase; display: block; margin-top: 2px; }
+	.modo .r { font: 500 12px Montserrat; color: var(--g4); display: block; margin-top: 12px; min-height: 1.4em; }
+	.mandos { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--g3); font-size: 13px; }
+	.mandos kbd { font: 700 12px Montserrat; color: var(--blanco); border: 1px solid var(--g2); border-bottom-width: 2px; border-radius: 3px; padding: 1px 6px; margin-right: 4px; }
+	#carga { color: var(--g3); font-size: 13px; margin-top: 18px; min-height: 1.4em; }
+	.pie { margin-top: 28px; color: #5a5a58; font-size: 12px; }
+	.pie a { color: var(--g3); }
+	@media (max-width: 620px) { .modos { grid-template-columns: 1fr; } }
+
+	/* HUD */
+	#hud { position: fixed; inset: 0; pointer-events: none; }
+	.panel { position: absolute; background: var(--velo); border: 1px solid rgba(255,255,255,.06); border-radius: 6px; backdrop-filter: blur(4px); }
+	#arriba { top: 14px; left: 14px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
+	#arriba svg { width: 30px; }
+	#arriba .t1 { font: 900 13px Montserrat; letter-spacing: .12em; }
+	#arriba .t2 { font: 700 11px Montserrat; letter-spacing: .12em; color: var(--g3); }
+	#reloj { font: 900 22px Montserrat; letter-spacing: .04em; margin-left: 8px; font-variant-numeric: tabular-nums; }
+	#radio { top: 76px; left: 14px; width: 300px; padding: 10px 12px 8px; }
+	#radio h3 { margin: 0 0 6px; font: 700 10px Montserrat; letter-spacing: .18em; color: var(--g3); }
+	.ia { display: grid; grid-template-columns: 52px 1fr; gap: 0 8px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.06); align-items: center; }
+	.ia .nom { font: 900 11px Montserrat; letter-spacing: .06em; }
+	.ia .dec { font: 700 11px Montserrat; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.ia .est { grid-column: 2; font: 500 10px Montserrat; color: var(--g3); letter-spacing: .06em; }
+	.ia .vid { grid-column: 1; height: 3px; background: var(--g2); border-radius: 2px; overflow: hidden; }
+	.ia .vid i { display: block; height: 100%; background: var(--rojo); }
+	.ia.lejos .dec { color: var(--g3); }
+	.ia.muerto { opacity: .4; }
+	.ia .apunta { color: var(--rojo); }
+	#abajo { left: 14px; bottom: 14px; padding: 12px 16px; display: flex; gap: 20px; align-items: center; max-width: calc(100% - 218px); }
+	.bloque .et { font: 700 10px Montserrat; letter-spacing: .16em; color: var(--g3); display: block; margin-bottom: 4px; }
+	#vida { width: 190px; }
+	.barra { height: 8px; background: var(--g2); border-radius: 2px; overflow: hidden; }
+	.barra i { display: block; height: 100%; background: var(--blanco); transition: width .15s; }
+	#vidaNum { font: 900 18px Montserrat; font-variant-numeric: tabular-nums; }
+	#carga2 { width: 150px; }
+	#recargaTxt { font: 900 18px Montserrat; font-variant-numeric: tabular-nums; }
+	#recargaTxt.listo { color: var(--blanco); }
+	.municiones { display: flex; gap: 6px; }
+	.mun { border: 1.5px solid var(--g2); border-radius: 4px; padding: 4px 8px; min-width: 62px; }
+	.mun.sel { border-color: var(--blanco); background: rgba(255,255,255,.08); }
+	.mun b { font: 900 13px Montserrat; display: block; letter-spacing: .04em; }
+	.mun small { font: 500 10px Montserrat; color: var(--g3); }
+	#estadoTanque { font: 700 10px Montserrat; letter-spacing: .1em; color: var(--g3); min-width: 120px; }
+	#estadoTanque .mal { color: var(--rojo); }
+	#avisos { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); text-align: center; }
+	.aviso { font: 900 15px Montserrat; letter-spacing: .1em; text-shadow: 0 2px 8px rgba(0,0,0,.9); margin-bottom: 4px; animation: sube 2.6s forwards; }
+	.aviso.malo { color: var(--rojo); }
+	.aviso.gris { color: var(--g4); }
+	@keyframes sube { 0% { opacity: 0; transform: translateY(6px); } 8% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; } }
+	#visto { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font: 900 12px Montserrat; letter-spacing: .16em;
+		padding: 6px 12px; border-radius: 4px; background: var(--rojo); color: #fff; }
+	#minimapa { position: absolute; right: 14px; bottom: 14px; width: 176px; height: 176px; border-radius: 6px; border: 1px solid rgba(255,255,255,.1); }
+	#centro { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
+	#cuenta { font: 900 120px Montserrat; text-shadow: 0 6px 30px rgba(0,0,0,.8); }
+	#pausa { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,5,5,.72); }
+	#pausa .caja { text-align: center; width: auto; }
+	#pausa h2 { font: 900 48px Montserrat; letter-spacing: .06em; margin: 0 0 18px; }
+	#pausa .botones { display: flex; gap: 10px; justify-content: center; }
+
+	/* Tarjeta final */
+	#final { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,5,5,.8); padding: 16px; overflow-y: auto; }
+	#final .tarjeta { width: min(620px, 100%); background: linear-gradient(135deg, #161616, #070707); border: 1px solid var(--g2); border-radius: 8px; padding: 30px 30px 24px; }
+	#final .sup { font: 700 12px Montserrat; letter-spacing: .18em; color: var(--g3); text-transform: uppercase; }
+	#final h2 { font: 900 clamp(34px, 7vw, 54px)/.98 Montserrat; text-transform: uppercase; margin: 10px 0 8px; letter-spacing: .01em; }
+	#final h2 span { color: transparent; -webkit-text-stroke: 1.5px var(--blanco); }
+	#final .sub { color: var(--g4); font: 700 15px Montserrat; letter-spacing: .06em; margin: 0 0 20px; }
+	.cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+	.cifra { background: rgba(255,255,255,.04); border-radius: 5px; padding: 10px 12px; }
+	.cifra b { font: 900 24px Montserrat; display: block; font-variant-numeric: tabular-nums; }
+	.cifra small { font: 700 10px Montserrat; letter-spacing: .14em; color: var(--g3); text-transform: uppercase; }
+	#final .botones { display: flex; flex-wrap: wrap; gap: 10px; }
+	#verificado { margin-top: 16px; font-size: 12px; color: var(--g3); min-height: 1.4em; }
+	#verificado b { color: var(--blanco); }
+	@media (max-width: 560px) { .cifras { grid-template-columns: repeat(2, 1fr); } }
+
+	/* Hall of Fame (fase 2) */
+	.modo .g { font: 700 11px Montserrat; color: var(--g3); display: block; margin-top: 4px; letter-spacing: .04em; min-height: 1.3em; }
+	#salon { margin-top: 34px; }
+	#salon h2 { font: 900 26px Montserrat; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 4px; }
+	#salon h2 span { color: transparent; -webkit-text-stroke: 1.2px var(--blanco); }
+	#salon .nota { color: var(--g3); font-size: 13px; margin: 0 0 16px; max-width: 640px; }
+	.columnas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+	.columna { background: var(--g1); border: 1.5px solid var(--g2); border-radius: 6px; padding: 14px 14px 10px; }
+	.columna h3 { margin: 0 0 8px; font: 900 15px Montserrat; letter-spacing: .06em; }
+	.columna h4 { margin: 12px 0 6px; font: 700 10px Montserrat; letter-spacing: .16em; color: var(--g3); text-transform: uppercase; }
+	.columna ol { list-style: none; margin: 0; padding: 0; }
+	.columna li { display: grid; grid-template-columns: 18px 1fr auto 26px; gap: 6px; align-items: center; padding: 4px 0; border-top: 1px solid rgba(255,255,255,.06); font-size: 13px; }
+	.columna li .p { color: var(--g3); font: 700 11px Montserrat; }
+	.columna li .q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.columna li .t { font: 900 13px Montserrat; font-variant-numeric: tabular-nums; }
+	.columna li button { padding: 2px 0; font-size: 11px; background: transparent; color: var(--blanco); border: 1px solid var(--g2); border-radius: 3px; letter-spacing: 0; }
+	.columna li button:hover { border-color: var(--blanco); }
+	.columna .vacio { color: var(--g3); font-size: 12px; padding: 6px 0; }
+	@media (max-width: 760px) { .columnas { grid-template-columns: 1fr; } }
+	#envio { margin: 0 0 18px; }
+	#envio label { display: block; font: 700 10px Montserrat; letter-spacing: .16em; color: var(--g3); text-transform: uppercase; margin-bottom: 6px; }
+	#envio .fila { display: flex; gap: 8px; }
+	#envio input { flex: 1; min-width: 0; font: 700 15px Montserrat; color: var(--blanco); background: rgba(255,255,255,.05); border: 1.5px solid var(--g2); border-radius: 4px; padding: 9px 12px; }
+	#envio input:focus { outline: none; border-color: var(--blanco); }
+	#envio small { display: block; margin-top: 6px; color: var(--g3); font-size: 12px; }
+	#visorBarra { top: 14px; left: 50%; transform: translateX(-50%); padding: 8px 14px; display: flex; gap: 14px; align-items: center; font: 700 12px Montserrat; letter-spacing: .08em; pointer-events: auto; white-space: nowrap; }
+	#visorBarra b { font-weight: 900; }
+	#visorBarra .vel { display: flex; gap: 4px; }
+	#visorBarra button { padding: 4px 8px; font-size: 11px; }
+	#visorBarra button.sec.sel { border-color: var(--blanco); background: rgba(255,255,255,.1); }
+	@media (max-width: 1000px) { #radio { width: 220px; } #minimapa { width: 130px; height: 130px; } #abajo { gap: 12px; padding: 10px; max-width: calc(100% - 172px); } #vida { width: 120px; } #carga2 { width: 110px; } .mun { min-width: 54px; padding: 3px 6px; } }
+</style>
+</head>
+<body>
+<canvas id="lienzo"></canvas>
+
+<div id="hud" class="oculto">
+	<div class="panel" id="arriba">
+		<svg viewBox="200 250 590 540" aria-hidden="true"><use href="#cara"/></svg>
+		<div><div class="t1">BEAT THE AI</div><div class="t2" id="modoTxt">1 VS 5 · ELITE AI</div></div>
+		<div id="reloj">0:00</div>
+	</div>
+	<div id="visto" class="oculto">SPOTTED</div>
+	<div class="panel" id="radio"><h3>WHAT THE AI DECIDES</h3><div id="radioLista"></div></div>
+	<div id="avisos"></div>
+	<div class="panel" id="abajo">
+		<div class="bloque" id="vida"><span class="et">HULL</span><div class="barra"><i id="vidaBarra" style="width:100%"></i></div><span id="vidaNum">1550</span></div>
+		<div class="bloque" id="carga2"><span class="et">GUN · 6.4 S RELOAD</span><div class="barra"><i id="recargaBarra" style="width:100%"></i></div><span id="recargaTxt" class="listo">READY</span></div>
+		<div class="bloque"><span class="et">SHELLS</span><div class="municiones">
+			<div class="mun" data-m="0"><b>1 · AP</b><small id="mu0">52</small></div>
+			<div class="mun" data-m="1"><b>2 · APCR</b><small id="mu1">20</small></div>
+			<div class="mun" data-m="2"><b>3 · HE</b><small id="mu2">20</small></div>
+		</div></div>
+		<div class="bloque"><span class="et">TANK</span><div id="estadoTanque">ALL GOOD</div></div>
+	</div>
+	<canvas id="minimapa" width="352" height="352"></canvas>
+	<div class="panel oculto" id="visorBarra">
+		<span>REPLAY · <b id="visorQuien">—</b></span><span id="visorReloj">0:00 / 0:00</span>
+		<span class="vel"><button class="sec sel" data-v="1">1×</button><button class="sec" data-v="2">2×</button><button class="sec" data-v="4">4×</button></span>
+		<button class="sec" id="visorRayos">X-ray</button><button class="sec" id="visorSalir">Back</button>
+	</div>
+</div>
+
+<div id="centro"><div id="cuenta"></div></div>
+
+<div id="pausa" class="oculto"><div class="caja">
+	<h2>PAUSED</h2>
+	<div class="botones"><button id="seguir">Resume</button><button class="sec" id="salir">Quit to menu</button></div>
+</div></div>
+
+<div id="final" class="oculto"><div class="tarjeta">
+	<div class="sup" id="finSup">Beat the AI · 1 vs 5</div>
+	<h2 id="finTitulo">You lasted <span>1:14</span></h2>
+	<p class="sub" id="finSub">against the Elite AI</p>
+	<div class="cifras">
+		<div class="cifra"><b id="cKills">0/5</b><small>Kills</small></div>
+		<div class="cifra"><b id="cDano">0</b><small>Damage</small></div>
+		<div class="cifra"><b id="cTiros">0</b><small>Hits / shots</small></div>
+		<div class="cifra"><b id="cTiempo">0:00</b><small>Time</small></div>
+	</div>
+	<div id="envio" class="oculto">
+		<label for="nombre">Your name in the Hall of Fame</label>
+		<div class="fila"><input id="nombre" maxlength="16" placeholder="Anonymous" autocomplete="nickname" spellcheck="false"><button class="sec" id="enviar">Submit</button></div>
+		<small id="envioEstado">Sent when you leave this screen, and checked on our server by replaying it.</small>
+	</div>
+	<div class="botones">
+		<button id="otra">Play again</button>
+		<button class="sec" id="siguiente">Try 1 vs 3</button>
+		<button class="sec" id="guardar">Save card</button>
+		<button class="sec" id="menu">Menu</button>
+	</div>
+	<div id="verificado"></div>
+</div></div>
+
+<div id="portada"><div class="caja">
+	<div class="marca"><svg viewBox="200 250 590 540" aria-hidden="true"><use href="#cara"/></svg><b>VIBE<span>FUSER</span></b></div>
+	<h1>Beat<br><span>the AI</span></h1>
+	<p class="lema">Same AI. Same shells. Same map.</p>
+	<p class="texto">You drive one Tiger. The AI drives the rest: the same Java code that fights in our Minecraft mod, compiled to WebAssembly and running in your browser. It sees only what its tank sees, hears your shots and knows your gun is empty for 6.4 seconds. So do you.</p>
+	<div class="modos">
+		<button class="modo" data-modo="1v1" disabled><span class="n">1 vs 1</span><span class="d">Elite AI</span><span class="r" id="r1v1"></span><span class="g" id="g1v1"></span></button>
+		<button class="modo" data-modo="1v3" disabled><span class="n">1 vs 3</span><span class="d">Elite AI</span><span class="r" id="r1v3"></span><span class="g" id="g1v3"></span></button>
+		<button class="modo" data-modo="1v5" disabled><span class="n">1 vs 5</span><span class="d">Elite AI</span><span class="r" id="r1v5"></span><span class="g" id="g1v5"></span></button>
+	</div>
+	<div class="mandos">
+		<span><kbd>W</kbd><kbd>S</kbd>drive</span>
+		<span><kbd>A</kbd><kbd>D</kbd>turn</span>
+		<span><kbd>Mouse</kbd>aim the turret</span>
+		<span><kbd>Click</kbd>fire (hold to fire when loaded)</span>
+		<span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>AP · APCR · HE</span>
+		<span><kbd>Wheel</kbd>zoom</span>
+		<span><kbd>Esc</kbd>pause</span>
+		<span><kbd>M</kbd>sound</span>
+	</div>
+	<div id="carga">Loading the simulator…</div>
+	<section id="salon" class="oculto">
+		<h2>Hall of <span>Fame</span></h2>
+		<p class="nota">Every game is played again on our server, with the same simulator, before it shows up here: the seed and your inputs give the exact same battle, so a fake win doesn't survive. Press ▶ to watch it.</p>
+		<div class="columnas" id="salonColumnas"></div>
+	</section>
+	<p class="pie">A VibeFuser experiment · desktop browser with keyboard and mouse · needs WebAssembly GC (Chrome 119+, Firefox 120+, Safari 18.2+)<br>
+		Tiger I 3D model: “German Armoured Division WWII Tiger Tank” by <a href="https://sketchfab.com/3d-models/german-armoured-division-wwii-tiger-tank-a982b6e03db143a8aa299f59e30b0d1a" target="_blank" rel="noopener">drcrazzie</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>), modified · Montserrat (SIL OFL)</p>
+</div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="cara">
+	<rect x="400" y="330" width="100" height="50" fill="#F4F4F2"/><rect x="350" y="380" width="150" height="50" fill="#F4F4F2"/><rect x="300" y="430" width="200" height="50" fill="#F4F4F2"/><rect x="300" y="480" width="200" height="50" fill="#F4F4F2"/><rect x="300" y="530" width="200" height="50" fill="#F4F4F2"/><rect x="300" y="580" width="200" height="50" fill="#F4F4F2"/><rect x="350" y="630" width="150" height="50" fill="#F4F4F2"/><rect x="400" y="680" width="100" height="50" fill="#F4F4F2"/>
+	<rect x="300" y="630" width="50" height="50" fill="#BDBDBA"/><rect x="350" y="680" width="50" height="50" fill="#D6D6D3"/>
+	<path d="M509,339 H600 A91,91 0 0 1 691,430 V630 A91,91 0 0 1 600,721 H509" fill="#0A0A0A" stroke="#F4F4F2" stroke-width="18" stroke-linejoin="round"/>
+	<rect x="398" y="486" width="28" height="28" fill="#0A0A0A"/><rect x="426" y="486" width="28" height="28" fill="#0A0A0A"/><rect x="454" y="486" width="28" height="28" fill="#0A0A0A"/><rect x="426" y="458" width="28" height="28" fill="#0A0A0A"/><rect x="426" y="514" width="28" height="28" fill="#0A0A0A"/>
+	<path d="M592,456 Q603,489 636,500 Q603,511 592,544 Q581,511 548,500 Q581,489 592,456 Z" fill="#F4F4F2"/>
+	<rect x="420" y="615" width="40" height="26" fill="#0A0A0A"/><rect x="460" y="641" width="40" height="26" fill="#0A0A0A"/>
+	<path d="M512,654 Q560,660 610,612" stroke="#F4F4F2" stroke-width="24" fill="none" stroke-linecap="round"/>
+	<polyline points="500,300 524,440 480,540 524,640 500,760" stroke="#0A0A0A" stroke-width="30" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+	<polyline points="500,300 524,440 480,540 524,640 500,760" stroke="#F4F4F2" stroke-width="10" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+	<path d="M262,470 C262,190 738,190 738,470" stroke="#F4F4F2" stroke-width="34" fill="none" stroke-linecap="round"/>
+	<rect x="218" y="430" width="92" height="210" rx="40" fill="#F4F4F2"/><rect x="699" y="439" width="74" height="192" rx="31" fill="#0A0A0A" stroke="#F4F4F2" stroke-width="18"/>
+</g></defs></svg>
+
+<script src="config.js"></script>
+<script src="nombres.js"></script>
+<script src="wasm-gc-runtime.js"></script>
+<script src="juego.js"></script>
+</body>
+</html>
