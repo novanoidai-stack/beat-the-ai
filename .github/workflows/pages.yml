@@ -1,0 +1,30 @@
+# Beat the AI · la copia del juego en GitHub Pages (https://novanoidai-stack.github.io/beat-the-ai/), además de Cloudflare.
+# En España, durante los partidos de LaLiga, las operadoras bloquean IPs de Cloudflare; GitHub Pages sigue llegando.
+# Se publica sola cuando cambia web/ en main (y a mano, con «Run workflow»).
+name: Publicar en GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: despliegue
+        uses: actions/deploy-pages@v4
